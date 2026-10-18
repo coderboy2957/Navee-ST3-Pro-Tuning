@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Scooter Telemetry Dashboard</title>
+    <title>Navee Live Cockpit</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -37,9 +37,9 @@
         <header class="glass-panel rounded-3xl p-6 flex flex-wrap justify-between items-center gap-4 shadow-2xl">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    Telemetry Pro Center
+                    Navee Cockpit
                 </h1>
-                <p class="text-xs text-slate-400 mt-0.5">Navee Debug & Live Inspector</p>
+                <p class="text-xs text-slate-400 mt-0.5">Live Bluetooth Telemetrie</p>
             </div>
             
             <div class="flex items-center space-x-3">
@@ -72,9 +72,9 @@
                 </div>
             </div>
 
-            <!-- MANUAL COMMAND SENDER (Zum Testen von Befehlen) -->
+            <!-- MANUELLER BEFEHL -->
             <div class="glass-panel rounded-3xl p-6 flex flex-col justify-between space-y-4">
-                <h3 class="text-xs uppercase text-slate-400 font-bold tracking-wider">Manueller Befehl-Test</h3>
+                <h3 class="text-xs uppercase text-slate-400 font-bold tracking-wider">Manueller Befehl</h3>
                 <p class="text-xs text-slate-400">Sende Test-Bytes an Kanal B002:</p>
                 <div class="space-y-2">
                     <input type="text" id="manualHex" value="AA 55 01 02" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
@@ -88,7 +88,7 @@
         <!-- TERMINAL -->
         <div class="glass-panel rounded-3xl p-6 space-y-2">
             <div class="flex justify-between items-center">
-                <span class="text-xs uppercase text-slate-400 font-bold">Echtzeit BLE Byte Stream & Debug</span>
+                <span class="text-xs uppercase text-slate-400 font-bold">Echtzeit BLE Byte Stream</span>
                 <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-slate-300">Terminal Leeren</button>
             </div>
             <div id="terminal" class="w-full h-48 bg-black/80 border border-white/10 rounded-2xl p-4 font-mono text-xs text-slate-400 overflow-y-auto space-y-1 select-text">
@@ -152,14 +152,12 @@
                     try {
                         const chars = await service.getCharacteristics();
                         for (const char of chars) {
-                            // Finde Read/Notify (z.B. B003)
                             if (char.properties.notify || char.properties.indicate) {
                                 readCharacteristic = char;
                                 await readCharacteristic.startNotifications();
                                 readCharacteristic.addEventListener('characteristicvaluechanged', parseTelemetryData);
                                 log(`Notify aktiv auf: ${char.uuid}`, 'success');
                             }
-                            // Finde Write (z.B. B002)
                             if (char.properties.write || char.properties.writeWithoutResponse) {
                                 writeCharacteristic = char;
                                 log(`Write-Kanal bereit: ${char.uuid}`, 'success');
@@ -169,39 +167,27 @@
                 }
 
                 updateUI(true);
-                log('Verbindung stehend. Versuche verschiedene Start-Sequenzen...', 'warning');
+                log('Verbindung erfolgreich! Scooter sollte jetzt verbunden sein.', 'success');
 
-                // Probiere verschiedene bekannte Scooter-Start-Sequenzen durch
-                await sendHandshakeSequences();
+                // Starte dezentes Polling im Hintergrund
+                startPolling();
 
             } catch (err) {
                 log(`Fehler: ${err.message}`, 'error');
             }
         }
 
-        async function sendHandshakeSequences() {
-            if (!writeCharacteristic) {
-                log('Keine Write-Characteristic vorhanden, kann keinen Handshake senden.', 'error');
-                return;
-            }
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            const pingCmd = new Uint8Array([0xA5, 0x00, 0x01, 0x00]);
 
-            // Verschiedene Protokoll-Ansätze (Xiaomi, Ninebot, universelles UART)
-            const sequences = [
-                { name: "Xiaomi/Ninebot Auth", data: new Uint8Array([0x55, 0xaa, 0x02, 0x00, 0x01, 0x00, 0xfd]) },
-                { name: "Standard Polling A5", data: new Uint8Array([0xA5, 0x00, 0x01, 0x00]) },
-                { name: "Navee Query Frame", data: new Uint8Array([0x3A, 0x01, 0x00, 0x00]) },
-                { name: "Raw Read Request", data: new Uint8Array([0x01, 0x00]) }
-            ];
-
-            for (const seq of sequences) {
-                try {
-                    log(`Teste Sequenz: ${seq.name}...`);
-                    await writeCharacteristic.writeValue(seq.data);
-                    await new Promise(r => setTimeout(r, 4005)); // Kurze Pause zum Lauschen
-                } catch (e) {
-                    log(`Fehler bei ${seq.name}: ${e.message}`, 'error');
+            pollInterval = setInterval(async () => {
+                if (writeCharacteristic && bluetoothDevice && bluetoothDevice.gatt.connected) {
+                    try {
+                        await writeCharacteristic.writeValue(pingCmd);
+                    } catch (e) {}
                 }
-            }
+            }, 1000); // Alle 1 Sekunde abfragen, um den Scooter nicht zu überfordern
         }
 
         async function sendManualCommand() {
@@ -224,6 +210,7 @@
         }
 
         function onDisconnected() {
+            if (pollInterval) clearInterval(pollInterval);
             updateUI(false);
             log('Bluetooth getrennt.');
         }
@@ -255,7 +242,6 @@
                 bytes.push(dataView.getUint8(i));
             }
 
-            // Sobald Daten ankommen, wird es hier im Terminal farbig angezeigt!
             log(`EMPFANGEN [${bytes.length} Bytes]: ${bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`, 'success');
 
             if (bytes.length >= 2) {
