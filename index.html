@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultimate Scooter Telemetry Dashboard</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,7 +12,6 @@
                 extend: {
                     colors: {
                         cardBg: 'rgba(20, 22, 30, 0.75)',
-                        borderGlow: 'rgba(255, 255, 255, 0.08)'
                     }
                 }
             }
@@ -41,7 +39,7 @@
                 <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                     Telemetry Pro Center
                 </h1>
-                <p class="text-xs text-slate-400 mt-0.5">E-Scooter Live Diagnostics & Protocol Inspector</p>
+                <p class="text-xs text-slate-400 mt-0.5">Navee Debug & Live Inspector</p>
             </div>
             
             <div class="flex items-center space-x-3">
@@ -55,139 +53,45 @@
             </div>
         </header>
 
-        <!-- MAIN TACHO & PEAK SECTION -->
+        <!-- TACHO DISPLAY -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- TACHO MAIN DISPLAY -->
             <div class="lg:col-span-2 glass-panel rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden">
                 <div class="flex justify-between items-center text-xs text-slate-400 font-medium tracking-wider uppercase">
                     <span>Geschwindigkeit</span>
                     <span id="modeBadge" class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-indigo-400 font-bold">MODE: --</span>
                 </div>
 
-                <!-- Big Speed Gauge -->
                 <div class="my-8 text-center">
                     <div class="inline-block relative">
                         <span id="speedDisplay" class="text-8xl md:text-9xl font-black tracking-tighter text-white text-glow">0.0</span>
                         <span class="text-xl md:text-2xl font-bold text-indigo-400 ml-2">km/h</span>
                     </div>
-                    
-                    <!-- Progress Bar for Speed -->
                     <div class="w-full bg-black/50 h-3 rounded-full overflow-hidden mt-6 border border-white/5">
                         <div id="speedBar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full w-0% transition-all duration-300"></div>
                     </div>
                 </div>
-
-                <!-- Sub-stats in Tacho -->
-                <div class="grid grid-cols-3 gap-4 text-center border-t border-white/10 pt-4">
-                    <div>
-                        <span class="text-[10px] uppercase text-slate-500 font-bold">Max Speed</span>
-                        <p class="text-lg font-bold text-slate-200 mt-1"><span id="maxSpeed">0.0</span> <span class="text-xs font-normal text-slate-400">km/h</span></p>
-                    </div>
-                    <div>
-                        <span class="text-[10px] uppercase text-slate-500 font-bold">Trip Distanz</span>
-                        <p class="text-lg font-bold text-slate-200 mt-1"><span id="tripDist">0.00</span> <span class="text-xs font-normal text-slate-400">km</span></p>
-                    </div>
-                    <div>
-                        <span class="text-[10px] uppercase text-slate-500 font-bold">Gesamt (Odo)</span>
-                        <p class="text-lg font-bold text-slate-200 mt-1"><span id="totalOdo">0</span> <span class="text-xs font-normal text-slate-400">km</span></p>
-                    </div>
-                </div>
             </div>
 
-            <!-- POWER & PEAK PANEL -->
+            <!-- MANUAL COMMAND SENDER (Zum Testen von Befehlen) -->
             <div class="glass-panel rounded-3xl p-6 flex flex-col justify-between space-y-4">
-                <h3 class="text-xs uppercase text-slate-400 font-bold tracking-wider">Motor & Leistung</h3>
-                
-                <!-- Watt Display -->
-                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
-                    <span class="text-[11px] text-slate-400 block">Aktuelle Leistung</span>
-                    <div class="flex items-baseline justify-between mt-1">
-                        <span id="powerWatt" class="text-4xl font-extrabold text-emerald-400">0</span>
-                        <span class="text-sm text-slate-500 font-semibold">Watt</span>
-                    </div>
-                    <div class="text-xs text-slate-500 mt-2 flex justify-between border-t border-white/5 pt-2">
-                        <span>Spitzenleistung:</span>
-                        <span class="font-bold text-slate-300"><span id="peakWatt">0</span> W</span>
-                    </div>
-                </div>
-
-                <!-- Stromstärke (Ampere) -->
-                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
-                    <span class="text-[11px] text-slate-400 block">Motorstrom</span>
-                    <div class="flex items-baseline justify-between mt-1">
-                        <span id="currentAmp" class="text-3xl font-bold text-cyan-400">0.0</span>
-                        <span class="text-sm text-slate-500 font-semibold">Ampere</span>
-                    </div>
-                </div>
-
-                <!-- Motortemperatur -->
-                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
-                    <span class="text-[11px] text-slate-400 block">Controller / Motor Temp.</span>
-                    <div class="flex items-baseline justify-between mt-1">
-                        <span id="tempDisplay" class="text-2xl font-bold text-amber-400">--</span>
-                        <span class="text-sm text-slate-500 font-semibold">°C</span>
-                    </div>
+                <h3 class="text-xs uppercase text-slate-400 font-bold tracking-wider">Manueller Befehl-Test</h3>
+                <p class="text-xs text-slate-400">Sende Test-Bytes an Kanal B002:</p>
+                <div class="space-y-2">
+                    <input type="text" id="manualHex" value="AA 55 01 02" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+                    <button onclick="sendManualCommand()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">
+                        Befehl Senden
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- BATTERY & HARDWARE METRICS -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <!-- AKKU % & SPANNUNG -->
-            <div class="glass-panel rounded-3xl p-6 space-y-3">
-                <div class="flex justify-between items-center">
-                    <span class="text-xs uppercase text-slate-400 font-bold">Akku & System</span>
-                    <span id="batteryPercent" class="text-xl font-bold text-emerald-400">--%</span>
-                </div>
-                <div class="w-full bg-black/50 h-2.5 rounded-full overflow-hidden border border-white/5">
-                    <div id="batteryBar" class="bg-emerald-500 h-full w-0% transition-all"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-xs pt-2 text-slate-400">
-                    <div>Spannung: <span id="voltageVolts" class="font-bold text-white">-- V</span></div>
-                    <div>Est. Reichweite: <span id="estRange" class="font-bold text-white">-- km</span></div>
-                </div>
-            </div>
-
-            <!-- SYSTEM FLAGS / STATUS -->
-            <div class="glass-panel rounded-3xl p-6 space-y-3">
-                <span class="text-xs uppercase text-slate-400 font-bold block">System Status</span>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <div id="flagLight" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">Licht: OFF</div>
-                    <div id="flagLock" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">Sperre: OFF</div>
-                    <div id="flagTCS" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">TCS: --</div>
-                    <div id="flagError" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">Error: None</div>
-                </div>
-            </div>
-
-            <!-- ACCELERATION / TRIP TIMER -->
-            <div class="glass-panel rounded-3xl p-6 space-y-3">
-                <span class="text-xs uppercase text-slate-400 font-bold block">Fahrt-Statistik</span>
-                <div class="space-y-2 text-xs text-slate-400">
-                    <div class="flex justify-between border-b border-white/5 pb-1">
-                        <span>Fahrzeit:</span>
-                        <span id="rideTime" class="font-bold text-white">00:00:00</span>
-                    </div>
-                    <div class="flex justify-between border-b border-white/5 pb-1">
-                        <span>Durchschnitts-Speed:</span>
-                        <span id="avgSpeed" class="font-bold text-white">0.0 km/h</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Ø Verbrauch:</span>
-                        <span id="avgWh" class="font-bold text-white">-- Wh/km</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PROTOCOL SNIFFER / TERMINAL -->
+        <!-- TERMINAL -->
         <div class="glass-panel rounded-3xl p-6 space-y-2">
             <div class="flex justify-between items-center">
-                <span class="text-xs uppercase text-slate-400 font-bold">Echtzeit BLE Byte Stream</span>
+                <span class="text-xs uppercase text-slate-400 font-bold">Echtzeit BLE Byte Stream & Debug</span>
                 <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-slate-300">Terminal Leeren</button>
             </div>
-            <div id="terminal" class="w-full h-40 bg-black/80 border border-white/10 rounded-2xl p-4 font-mono text-xs text-slate-400 overflow-y-auto space-y-1 select-text">
+            <div id="terminal" class="w-full h-48 bg-black/80 border border-white/10 rounded-2xl p-4 font-mono text-xs text-slate-400 overflow-y-auto space-y-1 select-text">
                 <div class="text-slate-600">// Bereit. Bitte Scooter per Bluetooth verbinden.</div>
             </div>
         </div>
@@ -200,15 +104,10 @@
         let readCharacteristic = null;
         let writeCharacteristic = null;
         let pollInterval = null;
-        
-        let maxSpeedVal = 0;
-        let peakWattVal = 0;
-        let startTime = null;
-        let timerInterval = null;
 
         function log(msg, type = 'info') {
             const term = document.getElementById('terminal');
-            const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-400';
+            const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : type === 'warning' ? 'text-amber-400' : 'text-slate-400';
             const time = new Date().toLocaleTimeString();
             term.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
             term.scrollTop = term.scrollHeight;
@@ -231,7 +130,7 @@
                     return;
                 }
 
-                log('Suche nach E-Scootern in Reichweite...');
+                log('Suche nach E-Scootern...');
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
                     optionalServices: [
@@ -244,75 +143,88 @@
 
                 bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-                log(`Verbinde mit: ${bluetoothDevice.name || 'Unbekanntes Gerät'}...`);
+                log(`Verbinde mit: ${bluetoothDevice.name || 'Gerät'}...`);
                 bluetoothServer = await bluetoothDevice.gatt.connect();
 
-                log('Scanne GATT Services & Characteristics...');
                 const services = await bluetoothServer.getPrimaryServices();
 
-                // 1. Suche nach Read (Notify) & Write Characteristics
                 for (const service of services) {
                     try {
                         const chars = await service.getCharacteristics();
                         for (const char of chars) {
+                            // Finde Read/Notify (z.B. B003)
                             if (char.properties.notify || char.properties.indicate) {
                                 readCharacteristic = char;
                                 await readCharacteristic.startNotifications();
                                 readCharacteristic.addEventListener('characteristicvaluechanged', parseTelemetryData);
-                                log(`Notify aktiv auf UUID: ${char.uuid.substring(0, 8)}`, 'success');
+                                log(`Notify aktiv auf: ${char.uuid}`, 'success');
                             }
+                            // Finde Write (z.B. B002)
                             if (char.properties.write || char.properties.writeWithoutResponse) {
                                 writeCharacteristic = char;
-                                log(`Write-Kanal gefunden: ${char.uuid.substring(0, 8)}`, 'success');
+                                log(`Write-Kanal bereit: ${char.uuid}`, 'success');
                             }
                         }
                     } catch (e) {}
                 }
 
-                if (!readCharacteristic) {
-                    log('Achtung: Keine Notify-Characteristic gefunden.', 'error');
-                }
-
                 updateUI(true);
-                startRideTimer();
-                
-                // 2. Start-Signal & Polling anwerfen
-                startPolling();
+                log('Verbindung stehend. Versuche verschiedene Start-Sequenzen...', 'warning');
 
-                log('Telemetrie-Stream aktiv! Warten auf Daten...', 'success');
+                // Probiere verschiedene bekannte Scooter-Start-Sequenzen durch
+                await sendHandshakeSequences();
 
             } catch (err) {
-                log(`Fehler beim Verbinden: ${err.message}`, 'error');
+                log(`Fehler: ${err.message}`, 'error');
             }
         }
 
-        // Sendet periodisch ein Abfrage-Paket (Ping) an den Scooter, um Daten abzurufen
-        function startPolling() {
-            if (pollInterval) clearInterval(pollInterval);
-            
-            // Standard-Abfragebefehle (Ping/Poll)
-            const pollCommand = new Uint8Array([0xA5, 0x00, 0x01, 0x00]);
+        async function sendHandshakeSequences() {
+            if (!writeCharacteristic) {
+                log('Keine Write-Characteristic vorhanden, kann keinen Handshake senden.', 'error');
+                return;
+            }
 
-            pollInterval = setInterval(async () => {
-                if (writeCharacteristic && bluetoothDevice && bluetoothDevice.gatt.connected) {
-                    try {
-                        await writeCharacteristic.writeValue(pollCommand);
-                    } catch (err) {
-                        // Ignorieren, wenn der Scooter ohne Response arbeitet
-                    }
+            // Verschiedene Protokoll-Ansätze (Xiaomi, Ninebot, universelles UART)
+            const sequences = [
+                { name: "Xiaomi/Ninebot Auth", data: new Uint8Array([0x55, 0xaa, 0x02, 0x00, 0x01, 0x00, 0xfd]) },
+                { name: "Standard Polling A5", data: new Uint8Array([0xA5, 0x00, 0x01, 0x00]) },
+                { name: "Navee Query Frame", data: new Uint8Array([0x3A, 0x01, 0x00, 0x00]) },
+                { name: "Raw Read Request", data: new Uint8Array([0x01, 0x00]) }
+            ];
+
+            for (const seq of sequences) {
+                try {
+                    log(`Teste Sequenz: ${seq.name}...`);
+                    await writeCharacteristic.writeValue(seq.data);
+                    await new Promise(r => setTimeout(r, 4005)); // Kurze Pause zum Lauschen
+                } catch (e) {
+                    log(`Fehler bei ${seq.name}: ${e.message}`, 'error');
                 }
-            }, 300); // Alle 300ms abfragen
+            }
         }
 
-        function stopPolling() {
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = null;
+        async function sendManualCommand() {
+            if (!writeCharacteristic) {
+                alert('Kein Write-Kanal verbunden!');
+                return;
+            }
+            const input = document.getElementById('manualHex').value.trim();
+            const clean = input.replace(/\s+/g, '');
+            let bytes = [];
+            for (let i = 0; i < clean.length; i += 2) {
+                bytes.push(parseInt(clean.substr(i, 2), 16));
+            }
+            try {
+                await writeCharacteristic.writeValue(new Uint8Array(bytes));
+                log(`Manuell gesendet: [${input}]`, 'success');
+            } catch (err) {
+                log(`Manueller Sende-Fehler: ${err.message}`, 'error');
+            }
         }
 
         function onDisconnected() {
             updateUI(false);
-            stopRideTimer();
-            stopPolling();
             log('Bluetooth getrennt.');
         }
 
@@ -336,7 +248,6 @@
             }
         }
 
-        // --- TELEMETRIE-PARSER ---
         function parseTelemetryData(event) {
             const dataView = event.target.value;
             let bytes = [];
@@ -344,46 +255,13 @@
                 bytes.push(dataView.getUint8(i));
             }
 
-            // Logge jeden empfangenen Byte-Stream
-            log(`HEX Stream [${bytes.length} Bytes]: ${bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+            // Sobald Daten ankommen, wird es hier im Terminal farbig angezeigt!
+            log(`EMPFANGEN [${bytes.length} Bytes]: ${bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`, 'success');
 
-            // Wenn Bytes einlaufen, ordnen wir sie hier zu:
-            if (bytes.length >= 4) {
-                // Beispielhafter Offset: Byte 2 = Geschwindigkeit
-                const rawSpeed = bytes[2] || 0;
-                const speed = rawSpeed > 0 ? rawSpeed / 1.0 : 0;
-                
+            if (bytes.length >= 2) {
+                const speed = bytes[2] || 0;
                 document.getElementById('speedDisplay').innerText = speed.toFixed(1);
-                document.getElementById('speedBar').style.width = Math.min((speed / 40) * 100, 100) + '%';
-                
-                if (speed > maxSpeedVal) {
-                    maxSpeedVal = speed;
-                    document.getElementById('maxSpeed').innerText = maxSpeedVal.toFixed(1);
-                }
-
-                // Beispielhafte Dummy-Werte für Akku/Watt falls Paket kürzer ist
-                if (bytes.length >= 6) {
-                    const battery = bytes[4] || 0;
-                    document.getElementById('batteryPercent').innerText = `${battery}%`;
-                    document.getElementById('batteryBar').style.width = `${battery}%`;
-                }
             }
-        }
-
-        function startRideTimer() {
-            startTime = new Date();
-            timerInterval = setInterval(() => {
-                const now = new Date();
-                const diff = new Date(now - startTime);
-                const hrs = String(diff.getUTCHours()).padStart(2, '0');
-                const mins = String(diff.getUTCMinutes()).padStart(2, '0');
-                const secs = String(diff.getUTCSeconds()).padStart(2, '0');
-                document.getElementById('rideTime').innerText = `${hrs}:${mins}:${secs}`;
-            }, 1000);
-        }
-
-        function stopRideTimer() {
-            if (timerInterval) clearInterval(timerInterval);
         }
     </script>
 </body>
