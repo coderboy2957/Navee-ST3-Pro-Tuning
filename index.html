@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scooter Live Dashboard & Telemetrie</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Ultimate Scooter Telemetry Dashboard</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,7 +12,8 @@
             theme: {
                 extend: {
                     colors: {
-                        glass: 'rgba(30, 30, 35, 0.7)',
+                        cardBg: 'rgba(20, 22, 30, 0.75)',
+                        borderGlow: 'rgba(255, 255, 255, 0.08)'
                     }
                 }
             }
@@ -20,85 +21,202 @@
     </script>
     <style>
         .glass-panel {
-            background: rgba(20, 20, 25, 0.8);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            background: rgba(18, 20, 28, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
         }
     </style>
 </head>
-<body class="bg-black text-slate-100 font-sans min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen p-4 md:p-8 flex justify-center">
 
-    <div class="w-full max-w-md glass-panel rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
+    <div class="w-full max-w-5xl space-y-6">
         
-        <!-- Header & Verbindung -->
-        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+        <!-- HEADER -->
+        <header class="glass-panel rounded-3xl p-6 flex flex-wrap justify-between items-center gap-4 shadow-2xl">
             <div>
-                <h1 class="text-xl font-semibold tracking-tight">Scooter Cockpit</h1>
-                <p class="text-xs text-slate-400">Live Bluetooth Telemetrie</p>
+                <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Telemetry Pro Center
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">E-Scooter Live Diagnostics & Protocol Inspector</p>
             </div>
-            <button id="connectBtn" onclick="toggleConnection()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-all shadow-lg shadow-indigo-600/20">
-                Verbinden
-            </button>
-        </div>
-
-        <!-- Tacho / Hauptanzeige (Geschwindigkeit) -->
-        <div class="text-center py-6 bg-white/5 rounded-2xl border border-white/5">
-            <span class="text-xs uppercase tracking-widest text-slate-400 font-medium">Geschwindigkeit</span>
-            <div class="flex items-baseline justify-center mt-2">
-                <span id="speedDisplay" class="text-6xl font-black tracking-tighter text-white">0.0</span>
-                <span class="text-lg text-indigo-400 ml-2 font-semibold">km/h</span>
+            
+            <div class="flex items-center space-x-3">
+                <div id="statusBadge" class="flex items-center space-x-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full text-xs text-red-400">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="statusText">Getrennt</span>
+                </div>
+                <button id="connectBtn" onclick="toggleConnection()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30 active:scale-95">
+                    Scooter Verbinden
+                </button>
             </div>
-        </div>
+        </header>
 
-        <!-- Sekundäre Telemetrie (Grid) -->
-        <div class="grid grid-cols-2 gap-4">
-            <!-- Leistung / Watt -->
-            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
-                <span class="text-xs text-slate-400">Motorleistung</span>
-                <div class="mt-3">
-                    <span id="powerDisplay" class="text-2xl font-bold text-emerald-400">0</span>
-                    <span class="text-xs text-slate-500 ml-1">W</span>
+        <!-- MAIN TACHO & PEAK SECTION -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- TACHO MAIN DISPLAY (2 Cols wide) -->
+            <div class="lg:col-span-2 glass-panel rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex justify-between items-center text-xs text-slate-400 font-medium tracking-wider uppercase">
+                    <span>Geschwindigkeit</span>
+                    <span id="modeBadge" class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-indigo-400 font-bold">MODE: --</span>
+                </div>
+
+                <!-- Big Speed Gauge -->
+                <div class="my-8 text-center">
+                    <div class="inline-block relative">
+                        <span id="speedDisplay" class="text-8xl md:text-9xl font-black tracking-tighter text-white text-glow">0.0</span>
+                        <span class="text-xl md:text-2xl font-bold text-indigo-400 ml-2">km/h</span>
+                    </div>
+                    
+                    <!-- Progress Bar for Speed -->
+                    <div class="w-full bg-black/50 h-3 rounded-full overflow-hidden mt-6 border border-white/5">
+                        <div id="speedBar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full w-0% transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Sub-stats in Tacho -->
+                <div class="grid grid-cols-3 gap-4 text-center border-t border-white/10 pt-4">
+                    <div>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold">Max Speed</span>
+                        <p class="text-lg font-bold text-slate-200 mt-1"><span id="maxSpeed">0.0</span> <span class="text-xs font-normal text-slate-400">km/h</span></p>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold">Trip Distanz</span>
+                        <p class="text-lg font-bold text-slate-200 mt-1"><span id="tripDist">0.00</span> <span class="text-xs font-normal text-slate-400">km</span></p>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold">Gesamt (Odo)</span>
+                        <p class="text-lg font-bold text-slate-200 mt-1"><span id="totalOdo">0</span> <span class="text-xs font-normal text-slate-400">km</span></p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Akkustand -->
-            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
-                <span class="text-xs text-slate-400">Akku / Spannung</span>
-                <div class="mt-3">
-                    <span id="batteryDisplay" class="text-2xl font-bold text-blue-400">--</span>
-                    <span id="voltageDisplay" class="text-xs text-slate-500 block mt-0.5">-- V</span>
+            <!-- POWER & PEAK PANEL -->
+            <div class="glass-panel rounded-3xl p-6 flex flex-col justify-between space-y-4">
+                <h3 class="text-xs uppercase text-slate-400 font-bold tracking-wider">Motor & Leistung</h3>
+                
+                <!-- Watt Display -->
+                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
+                    <span class="text-[11px] text-slate-400 block">Aktuelle Leistung</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="powerWatt" class="text-4xl font-extrabold text-emerald-400">0</span>
+                        <span class="text-sm text-slate-500 font-semibold">Watt</span>
+                    </div>
+                    <!-- Peak Watt -->
+                    <div class="text-xs text-slate-500 mt-2 flex justify-between border-t border-white/5 pt-2">
+                        <span>Spitzenleistung:</span>
+                        <span class="font-bold text-slate-300"><span id="peakWatt">0</span> W</span>
+                    </div>
+                </div>
+
+                <!-- Stromstärke (Ampere) -->
+                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
+                    <span class="text-[11px] text-slate-400 block">Motorstrom</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="currentAmp" class="text-3xl font-bold text-cyan-400">0.0</span>
+                        <span class="text-sm text-slate-500 font-semibold">Ampere</span>
+                    </div>
+                </div>
+
+                <!-- Motortemperatur -->
+                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
+                    <span class="text-[11px] text-slate-400 block">Controller / Motor Temp.</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="tempDisplay" class="text-2xl font-bold text-amber-400">--</span>
+                        <span class="text-sm text-slate-500 font-semibold">°C</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Live Terminal für Rohdaten -->
-        <div>
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-xs text-slate-400">Telemetrie-Stream Log</span>
-                <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-slate-300">Leeren</button>
+        <!-- BATTERY & HARDWARE METRICS -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- AKKU % & SPANNUNG -->
+            <div class="glass-panel rounded-3xl p-6 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs uppercase text-slate-400 font-bold">Akku & System</span>
+                    <span id="batteryPercent" class="text-xl font-bold text-emerald-400">--%</span>
+                </div>
+                <div class="w-full bg-black/50 h-2.5 rounded-full overflow-hidden border border-white/5">
+                    <div id="batteryBar" class="bg-emerald-500 h-full w-0% transition-all"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs pt-2 text-slate-400">
+                    <div>Spannung: <span id="voltageVolts" class="font-bold text-white">-- V</span></div>
+                    <div>Est. Reichweite: <span id="estRange" class="font-bold text-white">-- km</span></div>
+                </div>
             </div>
-            <div id="terminal" class="w-full h-32 bg-black/60 border border-white/10 rounded-xl p-3 font-mono text-[10px] text-slate-400 overflow-y-auto space-y-1">
-                <div>// Warte auf Verbindung...</div>
+
+            <!-- SYSTEM FLAGS / STATUS -->
+            <div class="glass-panel rounded-3xl p-6 space-y-3">
+                <span class="text-xs uppercase text-slate-400 font-bold block">System Status</span>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div id="flagLight" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">Licht: OFF</div>
+                    <div id="flagLock" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">Sperre: OFF</div>
+                    <div id="flagTCS" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">TCS: --</div>
+                    <div id="flagError" class="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 text-center">Error: None</div>
+                </div>
+            </div>
+
+            <!-- ACCELERATION / TRIP TIMER -->
+            <div class="glass-panel rounded-3xl p-6 space-y-3">
+                <span class="text-xs uppercase text-slate-400 font-bold block">Fahrt-Statistik</span>
+                <div class="space-y-2 text-xs text-slate-400">
+                    <div class="flex justify-between border-b border-white/5 pb-1">
+                        <span>Fahrzeit:</span>
+                        <span id="rideTime" class="font-bold text-white">00:00:00</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-1">
+                        <span>Durchschnitts-Speed:</span>
+                        <span id="avgSpeed" class="font-bold text-white">0.0 km/h</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Ø Verbrauch:</span>
+                        <span id="avgWh" class="font-bold text-white">-- Wh/km</span>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- PROTOCOL SNIFFER / TERMINAL -->
+        <div class="glass-panel rounded-3xl p-6 space-y-2">
+            <div class="flex justify-between items-center">
+                <span class="text-xs uppercase text-slate-400 font-bold">Echtzeit BLE Byte Stream</span>
+                <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-slate-300">Terminal Leeren</button>
+            </div>
+            <div id="terminal" class="w-full h-40 bg-black/80 border border-white/10 rounded-2xl p-4 font-mono text-xs text-slate-400 overflow-y-auto space-y-1 select-text">
+                <div class="text-slate-600">// Bereit. Bitte Scooter per Bluetooth verbinden.</div>
+            </div>
+        </div>
+
     </div>
 
     <script>
         let bluetoothDevice = null;
         let bluetoothServer = null;
         let readCharacteristic = null;
+        
+        // Performance-Tracking Variablen
+        let maxSpeedVal = 0;
+        let peakWattVal = 0;
+        let totalDistance = 0;
+        let startTime = null;
+        let timerInterval = null;
 
-        function log(message, type = 'info') {
-            const terminal = document.getElementById('terminal');
-            const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-400';
-            const timestamp = new Date().toLocaleTimeString();
-            terminal.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
-            terminal.scrollTop = terminal.scrollHeight;
+        function log(msg, type = 'info') {
+            const term = document.getElementById('terminal');
+            const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-400';
+            const time = new Date().toLocaleTimeString();
+            term.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+            term.scrollTop = term.scrollHeight;
         }
 
         function clearLog() {
-            document.getElementById('terminal').innerHTML = '<div class="text-slate-500">// Log geleert.</div>';
+            document.getElementById('terminal').innerHTML = '<div class="text-slate-600">// Log geleert.</div>';
         }
 
         async function toggleConnection() {
@@ -110,95 +228,145 @@
 
             try {
                 if (!navigator.bluetooth) {
-                    alert('Web Bluetooth wird von diesem Browser nicht unterstützt. Bitte Chrome verwenden.');
+                    alert('Web Bluetooth wird von diesem Browser nicht unterstützt. Bitte Chrome nutzen.');
                     return;
                 }
 
-                log('Suche nach Bluetooth-Geräten...');
+                log('Suche nach E-Scootern in Reichweite...');
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: [] // Falls spezifische Services nötig sind, hier eintragen
+                    optionalServices: [] // Kannst du mit deinen spezifischen Service-UUIDs füllen
                 });
 
                 bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-                log(`Verbinde mit ${bluetoothDevice.name || 'Gerät'}...`);
+                log(`Verbinde mit: ${bluetoothDevice.name || 'Gerät'}...`);
                 bluetoothServer = await bluetoothDevice.gatt.connect();
-                
-                log('Suche nach Services und Characteristics...');
+
+                log('Scanne GATT Services & Characteristics...');
                 const services = await bluetoothServer.getPrimaryServices();
-                
-                // Wir nehmen vereinfacht den ersten Service & Characteristic für Notifications
-                // (In der Praxis sucht man hier nach der spezifischen Notify-UUID des jeweiligen Scooter-Modells)
+
+                // Sucht automatisch nach der ersten Notify-Eigenschaft, die Daten sendet
                 for (const service of services) {
                     try {
-                        const characteristics = await service.getCharacteristics();
-                        for (const char of characteristics) {
+                        const chars = await service.getCharacteristics();
+                        for (const char of chars) {
                             if (char.properties.notify) {
                                 readCharacteristic = char;
                                 await readCharacteristic.startNotifications();
-                                readCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
-                                log(`Lausche auf Live-Daten von: ${char.uuid}`, 'success');
+                                readCharacteristic.addEventListener('characteristicvaluechanged', parseTelemetryData);
+                                log(`Gefunden! Abonniert Notify-Characteristic: ${char.uuid}`, 'success');
                                 break;
                             }
                         }
-                    } catch (e) {
-                        // Ignorieren, wenn ein Service geschützt ist
-                    }
+                    } catch (e) {}
                 }
 
-                if (!readCharacteristic) {
-                    log('Keine lesbare Notify-Characteristic gefunden.', 'error');
-                }
+                updateUI(true);
+                startRideTimer();
+                log('Telemetrie-Stream aktiv!', 'success');
 
-                updateUIState(true);
-                log('Erfolgreich mit Cockpit verbunden!', 'success');
-
-            } catch (error) {
-                log(`Verbindungsfehler: ${error.message}`, 'error');
+            } catch (err) {
+                log(`Fehler: ${err.message}`, 'error');
             }
         }
 
         function onDisconnected() {
-            updateUIState(false);
-            log('Bluetooth-Verbindung getrennt.');
+            updateUI(false);
+            stopRideTimer();
+            log('Bluetooth getrennt.');
         }
 
-        function updateUIState(isConnected) {
+        function updateUI(connected) {
+            const badge = document.getElementById('statusBadge');
             const btn = document.getElementById('connectBtn');
-            if (isConnected) {
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                badge.className = "flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full text-xs text-emerald-400";
+                badge.querySelector('span').className = "w-2 h-2 rounded-full bg-emerald-500";
+                statusText.innerText = "Verbunden";
                 btn.innerText = "Trennen";
-                btn.className = "px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-xl transition-all";
+                btn.className = "px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-red-600/30";
             } else {
-                btn.innerText = "Verbinden";
-                btn.className = "px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-all";
-                document.getElementById('speedDisplay').innerText = "0.0";
-                document.getElementById('powerDisplay').innerText = "0";
-                document.getElementById('batteryDisplay').innerText = "--";
-                document.getElementById('voltageDisplay').innerText = "-- V";
+                badge.className = "flex items-center space-x-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full text-xs text-red-400";
+                badge.querySelector('span').className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
+                statusText.innerText = "Getrennt";
+                btn.innerText = "Scooter Verbinden";
+                btn.className = "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30";
             }
         }
 
-        // Hier kommen die rohen Bytes vom Scooter an
-        function handleNotifications(event) {
-            const value = event.target.value;
-            let byteArray = [];
-            for (let i = 0; i < value.byteLength; i++) {
-                byteArray.push(value.getUint8(i));
+        // --- DASHBOARD DATA PARSER ---
+        function parseTelemetryData(event) {
+            const dataView = event.target.value;
+            let bytes = [];
+            for (let i = 0; i < dataView.byteLength; i++) {
+                bytes.push(dataView.getUint8(i));
             }
 
-            // Zeige die rohen Bytes im Log (hilft beim Entschlüsseln des Protokolls)
-            log(`Empfangen: [${byteArray.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+            // Rohdaten im Terminal ausgeben
+            log(`HEX Stream [${bytes.length} Bytes]: ${bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
 
-            // BEISPIEL-PARSING (Muss an das echte Protokoll des jeweiligen Scooters angepasst werden):
-            // Angenommen Byte 2 ist die Geschwindigkeit und Byte 4 & 5 sind die Leistung:
-            if (byteArray.length >= 6) {
-                const speed = byteArray[2] || 0; // Beispielhafter Wert
-                const power = (byteArray[4] << 8) | byteArray[5]; // 16-bit Watt-Wert
-
+            // ACHTUNG: Die nachfolgenden Byte-Offsätze sind Platzhalter/Standard-Muster.
+            // Sobald du dein genaue Byte-Struktur kennst, passt du die Offsets an:
+            if (bytes.length >= 8) {
+                
+                // 1. Geschwindigkeit (Bsp: Byte 2 = km/h)
+                const speed = (bytes[2] || 0) / 1.0;
                 document.getElementById('speedDisplay').innerText = speed.toFixed(1);
-                document.getElementById('powerDisplay').innerText = power;
+                document.getElementById('speedBar').style.width = Math.min((speed / 40) * 100, 100) + '%';
+                
+                if (speed > maxSpeedVal) {
+                    maxSpeedVal = speed;
+                    document.getElementById('maxSpeed').innerText = maxSpeedVal.toFixed(1);
+                }
+
+                // 2. Spannung & Strom -> Leistung
+                const voltage = ((bytes[3] || 0) + 300) / 10.0; // Beispiel
+                const current = (bytes[4] || 0) / 2.0;
+                const watt = Math.round(voltage * current);
+
+                document.getElementById('powerWatt').innerText = watt;
+                document.getElementById('currentAmp').innerText = current.toFixed(1);
+                document.getElementById('voltageVolts').innerText = `${voltage.toFixed(1)} V`;
+
+                if (watt > peakWattVal) {
+                    peakWattVal = watt;
+                    document.getElementById('peakWatt').innerText = peakWattVal;
+                }
+
+                // 3. Akku %
+                const battery = bytes[5] || 0;
+                document.getElementById('batteryPercent').innerText = `${battery}%`;
+                document.getElementById('batteryBar').style.width = `${battery}%`;
+                document.getElementById('estRange').innerText = `~${Math.round(battery * 0.55)} km`;
+
+                // 4. Temperatur
+                const temp = bytes[6] || 25;
+                document.getElementById('tempDisplay').innerText = temp;
+
+                // 5. Fahrmodus
+                const modeByte = bytes[7] || 0;
+                const modeNames = ["WALK", "DRIVE", "SPORT"];
+                document.getElementById('modeBadge').innerText = `MODE: ${modeNames[modeByte] || 'SPORT'}`;
             }
+        }
+
+        function startRideTimer() {
+            startTime = new Date();
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const diff = new Date(now - startTime);
+                const hrs = String(diff.getUTCHours()).padStart(2, '0');
+                const mins = String(diff.getUTCMinutes()).padStart(2, '0');
+                const secs = String(diff.getUTCSeconds()).padStart(2, '0');
+                document.getElementById('rideTime').innerText = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopRideTimer() {
+            if (timerInterval) clearInterval(timerInterval);
         }
     </script>
 </body>
