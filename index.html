@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BLE Scooter Utility & Terminal</title>
+    <title>Scooter Live Dashboard & Telemetrie</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,8 +12,7 @@
             theme: {
                 extend: {
                     colors: {
-                        glass: 'rgba(255, 255, 255, 0.05)',
-                        glassBorder: 'rgba(255, 255, 255, 0.1)',
+                        glass: 'rgba(30, 30, 35, 0.7)',
                     }
                 }
             }
@@ -21,72 +20,66 @@
     </script>
     <style>
         .glass-panel {
-            background: rgba(30, 30, 35, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(20, 20, 25, 0.8);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
     </style>
 </head>
 <body class="bg-black text-slate-100 font-sans min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="w-full max-w-2xl glass-panel rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+    <div class="w-full max-w-md glass-panel rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
+        
+        <!-- Header & Verbindung -->
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight">Scooter BLE Controller</h1>
-                <p class="text-xs text-slate-400 mt-1">Web Bluetooth API Client Interface</p>
+                <h1 class="text-xl font-semibold tracking-tight">Scooter Cockpit</h1>
+                <p class="text-xs text-slate-400">Live Bluetooth Telemetrie</p>
             </div>
-            <div id="statusIndicator" class="flex items-center space-x-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full text-xs text-red-400">
-                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <span id="statusText">Getrennt</span>
-            </div>
-        </div>
-
-        <!-- Connection Controls -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <button id="connectBtn" onclick="connectBLE()" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
-                Mit Scooter verbinden
-            </button>
-            <button id="disconnectBtn" onclick="disconnectBLE()" disabled class="w-full py-3 px-4 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-medium rounded-xl transition-all border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed">
-                Verbindung trennen
+            <button id="connectBtn" onclick="toggleConnection()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-all shadow-lg shadow-indigo-600/20">
+                Verbinden
             </button>
         </div>
 
-        <!-- UUID Configuration -->
-        <div class="space-y-4 mb-6 bg-black/30 p-4 rounded-2xl border border-white/5">
-            <h2 class="text-sm font-medium text-slate-300">Bluetooth Characteristics</h2>
-            <div class="grid grid-cols-1 gap-3">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Service UUID (optional / leer lassen für Auto-Scan)</label>
-                    <input type="text" id="serviceUuid" placeholder="z. B. 0000ffe0-0000-1000-8000-00805f9b34fb" class="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        <!-- Tacho / Hauptanzeige (Geschwindigkeit) -->
+        <div class="text-center py-6 bg-white/5 rounded-2xl border border-white/5">
+            <span class="text-xs uppercase tracking-widest text-slate-400 font-medium">Geschwindigkeit</span>
+            <div class="flex items-baseline justify-center mt-2">
+                <span id="speedDisplay" class="text-6xl font-black tracking-tighter text-white">0.0</span>
+                <span class="text-lg text-indigo-400 ml-2 font-semibold">km/h</span>
+            </div>
+        </div>
+
+        <!-- Sekundäre Telemetrie (Grid) -->
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Leistung / Watt -->
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+                <span class="text-xs text-slate-400">Motorleistung</span>
+                <div class="mt-3">
+                    <span id="powerDisplay" class="text-2xl font-bold text-emerald-400">0</span>
+                    <span class="text-xs text-slate-500 ml-1">W</span>
                 </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Write Characteristic UUID</label>
-                    <input type="text" id="writeUuid" placeholder="z. B. 0000ffe1-..." class="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <!-- Akkustand -->
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+                <span class="text-xs text-slate-400">Akku / Spannung</span>
+                <div class="mt-3">
+                    <span id="batteryDisplay" class="text-2xl font-bold text-blue-400">--</span>
+                    <span id="voltageDisplay" class="text-xs text-slate-500 block mt-0.5">-- V</span>
                 </div>
             </div>
         </div>
 
-        <!-- Payload Sender -->
-        <div class="space-y-4 mb-6">
-            <h2 class="text-sm font-medium text-slate-300">Befehl senden (Hex-Payload)</h2>
-            <div class="flex gap-2">
-                <input type="text" id="hexInput" placeholder="z. B. AA 55 04 01 02 FF" class="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-indigo-500">
-                <button onclick="sendHex()" id="sendBtn" disabled class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    Senden
-                </button>
-            </div>
-        </div>
-
-        <!-- Terminal Output -->
-        <div class="space-y-2">
-            <div class="flex justify-between items-center">
-                <span class="text-xs font-medium text-slate-400">Live Terminal / Log</span>
+        <!-- Live Terminal für Rohdaten -->
+        <div>
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-xs text-slate-400">Telemetrie-Stream Log</span>
                 <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-slate-300">Leeren</button>
             </div>
-            <div id="terminal" class="w-full h-40 bg-black/70 border border-white/10 rounded-2xl p-4 font-mono text-xs text-slate-300 overflow-y-auto space-y-1 select-text">
-                <div class="text-slate-500">// Bereit. Bitte Bluetooth-Verbindung herstellen.</div>
+            <div id="terminal" class="w-full h-32 bg-black/60 border border-white/10 rounded-xl p-3 font-mono text-[10px] text-slate-400 overflow-y-auto space-y-1">
+                <div>// Warte auf Verbindung...</div>
             </div>
         </div>
     </div>
@@ -94,11 +87,11 @@
     <script>
         let bluetoothDevice = null;
         let bluetoothServer = null;
-        let writeCharacteristic = null;
+        let readCharacteristic = null;
 
         function log(message, type = 'info') {
             const terminal = document.getElementById('terminal');
-            const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-300';
+            const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-400';
             const timestamp = new Date().toLocaleTimeString();
             terminal.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
             terminal.scrollTop = terminal.scrollHeight;
@@ -108,124 +101,104 @@
             document.getElementById('terminal').innerHTML = '<div class="text-slate-500">// Log geleert.</div>';
         }
 
-        async function connectBLE() {
+        async function toggleConnection() {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                await bluetoothDevice.gatt.disconnect();
+                onDisconnected();
+                return;
+            }
+
             try {
                 if (!navigator.bluetooth) {
-                    alert('Web Bluetooth wird von diesem Browser (oder Gerät) nicht unterstützt. Bitte Chrome verwenden.');
+                    alert('Web Bluetooth wird von diesem Browser nicht unterstützt. Bitte Chrome verwenden.');
                     return;
                 }
 
                 log('Suche nach Bluetooth-Geräten...');
-                
-                // Optional: Filter anpassen, falls ein spezifischer Name gesucht wird (z.B. { namePrefix: 'Navee' })
-                const options = {
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: []
-                };
+                    optionalServices: [] // Falls spezifische Services nötig sind, hier eintragen
+                });
 
-                const serviceUuidVal = document.getElementById('serviceUuid').value.trim();
-                if (serviceUuidVal) {
-                    options.optionalServices.push(serviceUuidVal);
-                }
-
-                bluetoothDevice = await navigator.bluetooth.requestDevice(options);
-                
-                log(`Gefunden: ${bluetoothDevice.name || 'Unbekanntes Gerät'} (${bluetoothDevice.id})`);
-                
                 bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-                log('Verbinde mit GATT-Server...');
+                log(`Verbinde mit ${bluetoothDevice.name || 'Gerät'}...`);
                 bluetoothServer = await bluetoothDevice.gatt.connect();
                 
-                updateConnectionState(true);
-                log('Erfolgreich verbunden!', 'success');
+                log('Suche nach Services und Characteristics...');
+                const services = await bluetoothServer.getPrimaryServices();
+                
+                // Wir nehmen vereinfacht den ersten Service & Characteristic für Notifications
+                // (In der Praxis sucht man hier nach der spezifischen Notify-UUID des jeweiligen Scooter-Modells)
+                for (const service of services) {
+                    try {
+                        const characteristics = await service.getCharacteristics();
+                        for (const char of characteristics) {
+                            if (char.properties.notify) {
+                                readCharacteristic = char;
+                                await readCharacteristic.startNotifications();
+                                readCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+                                log(`Lausche auf Live-Daten von: ${char.uuid}`, 'success');
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignorieren, wenn ein Service geschützt ist
+                    }
+                }
+
+                if (!readCharacteristic) {
+                    log('Keine lesbare Notify-Characteristic gefunden.', 'error');
+                }
+
+                updateUIState(true);
+                log('Erfolgreich mit Cockpit verbunden!', 'success');
 
             } catch (error) {
                 log(`Verbindungsfehler: ${error.message}`, 'error');
             }
         }
 
-        async function disconnectBLE() {
-            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-                await bluetoothDevice.gatt.disconnect();
-            }
-            onDisconnected();
-        }
-
         function onDisconnected() {
-            updateConnectionState(false);
+            updateUIState(false);
             log('Bluetooth-Verbindung getrennt.');
         }
 
-        function updateConnectionState(isConnected) {
-            const indicator = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('statusText');
-            const connectBtn = document.getElementById('connectBtn');
-            const disconnectBtn = document.getElementById('disconnectBtn');
-            const sendBtn = document.getElementById('sendBtn');
-
+        function updateUIState(isConnected) {
+            const btn = document.getElementById('connectBtn');
             if (isConnected) {
-                indicator.className = "flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full text-xs text-emerald-400";
-                indicator.querySelector('span').className = "w-2 h-2 rounded-full bg-emerald-500";
-                statusText.innerText = "Verbunden";
-                connectBtn.disabled = true;
-                disconnectBtn.disabled = false;
-                sendBtn.disabled = false;
+                btn.innerText = "Trennen";
+                btn.className = "px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-xl transition-all";
             } else {
-                indicator.className = "flex items-center space-x-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full text-xs text-red-400";
-                indicator.querySelector('span').className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
-                statusText.innerText = "Getrennt";
-                connectBtn.disabled = false;
-                disconnectBtn.disabled = true;
-                sendBtn.disabled = true;
-                bluetoothDevice = null;
-                bluetoothServer = null;
-                writeCharacteristic = null;
+                btn.innerText = "Verbinden";
+                btn.className = "px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-all";
+                document.getElementById('speedDisplay').innerText = "0.0";
+                document.getElementById('powerDisplay').innerText = "0";
+                document.getElementById('batteryDisplay').innerText = "--";
+                document.getElementById('voltageDisplay').innerText = "-- V";
             }
         }
 
-        async function sendHex() {
-            const hexInput = document.getElementById('hexInput').value.trim();
-            const writeUuid = document.getElementById('writeUuid').value.trim();
-
-            if (!hexInput) {
-                alert('Bitte Hex-Befehl eingeben.');
-                return;
+        // Hier kommen die rohen Bytes vom Scooter an
+        function handleNotifications(event) {
+            const value = event.target.value;
+            let byteArray = [];
+            for (let i = 0; i < value.byteLength; i++) {
+                byteArray.push(value.getUint8(i));
             }
 
-            if (!writeUuid) {
-                alert('Bitte Write Characteristic UUID angeben.');
-                return;
+            // Zeige die rohen Bytes im Log (hilft beim Entschlüsseln des Protokolls)
+            log(`Empfangen: [${byteArray.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+
+            // BEISPIEL-PARSING (Muss an das echte Protokoll des jeweiligen Scooters angepasst werden):
+            // Angenommen Byte 2 ist die Geschwindigkeit und Byte 4 & 5 sind die Leistung:
+            if (byteArray.length >= 6) {
+                const speed = byteArray[2] || 0; // Beispielhafter Wert
+                const power = (byteArray[4] << 8) | byteArray[5]; // 16-bit Watt-Wert
+
+                document.getElementById('speedDisplay').innerText = speed.toFixed(1);
+                document.getElementById('powerDisplay').innerText = power;
             }
-
-            try {
-                // Hex-String in Uint8Array umwandeln
-                const cleanHex = hexInput.replace(/\s+/g, '');
-                const typedArray = new Uint8Array(matchBytes(cleanHex));
-
-                if (!writeCharacteristic) {
-                    const serviceUuidVal = document.getElementById('serviceUuid').value.trim();
-                    const service = serviceUuidVal ? 
-                        await bluetoothServer.getPrimaryService(serviceUuidVal) : 
-                        (await bluetoothServer.getPrimaryServices())[0]; // Nimm den ersten Service als Fallback
-                    
-                    writeCharacteristic = await service.getCharacteristic(writeUuid);
-                }
-
-                await writeCharacteristic.writeValue(typedArray);
-                log(`Gesendet (${typedArray.length} Bytes): ${hexInput}`, 'success');
-
-            } catch (error) {
-                log(`Fehler beim Senden: ${error.message}`, 'error');
-            }
-        }
-
-        function matchBytes(hex) {
-            let bytes = [];
-            for (let i = 0; i < hex.length; i += 2) {
-                bytes.push(parseInt(hex.substr(i, 2), 16));
-            }
-            return bytes;
         }
     </script>
 </body>
