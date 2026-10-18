@@ -58,7 +58,7 @@
         <!-- MAIN TACHO & PEAK SECTION -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- TACHO MAIN DISPLAY (2 Cols wide) -->
+            <!-- TACHO MAIN DISPLAY -->
             <div class="lg:col-span-2 glass-panel rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden">
                 <div class="flex justify-between items-center text-xs text-slate-400 font-medium tracking-wider uppercase">
                     <span>Geschwindigkeit</span>
@@ -106,7 +106,6 @@
                         <span id="powerWatt" class="text-4xl font-extrabold text-emerald-400">0</span>
                         <span class="text-sm text-slate-500 font-semibold">Watt</span>
                     </div>
-                    <!-- Peak Watt -->
                     <div class="text-xs text-slate-500 mt-2 flex justify-between border-t border-white/5 pt-2">
                         <span>Spitzenleistung:</span>
                         <span class="font-bold text-slate-300"><span id="peakWatt">0</span> W</span>
@@ -199,11 +198,11 @@
         let bluetoothDevice = null;
         let bluetoothServer = null;
         let readCharacteristic = null;
+        let writeCharacteristic = null;
+        let pollInterval = null;
         
-        // Performance-Tracking Variablen
         let maxSpeedVal = 0;
         let peakWattVal = 0;
-        let totalDistance = 0;
         let startTime = null;
         let timerInterval = null;
 
@@ -228,52 +227,92 @@
 
             try {
                 if (!navigator.bluetooth) {
-                    alert('Web Bluetooth wird von diesem Browser nicht unterstützt. Bitte Chrome nutzen.');
+                    alert('Web Bluetooth wird von diesem Browser nicht unterstützt. Bitte Google Chrome nutzen.');
                     return;
                 }
 
                 log('Suche nach E-Scootern in Reichweite...');
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: [] // Kannst du mit deinen spezifischen Service-UUIDs füllen
+                    optionalServices: [
+                        '0000ffe0-0000-1000-8000-00805f9b34fb',
+                        '0000e000-0000-1000-8000-00805f9b34fb',
+                        '0000b000-0000-1000-8000-00805f9b34fb',
+                        '0000f000-0000-1000-8000-00805f9b34fb'
+                    ]
                 });
 
                 bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-                log(`Verbinde mit: ${bluetoothDevice.name || 'Gerät'}...`);
+                log(`Verbinde mit: ${bluetoothDevice.name || 'Unbekanntes Gerät'}...`);
                 bluetoothServer = await bluetoothDevice.gatt.connect();
 
                 log('Scanne GATT Services & Characteristics...');
                 const services = await bluetoothServer.getPrimaryServices();
 
-                // Sucht automatisch nach der ersten Notify-Eigenschaft, die Daten sendet
+                // 1. Suche nach Read (Notify) & Write Characteristics
                 for (const service of services) {
                     try {
                         const chars = await service.getCharacteristics();
                         for (const char of chars) {
-                            if (char.properties.notify) {
+                            if (char.properties.notify || char.properties.indicate) {
                                 readCharacteristic = char;
                                 await readCharacteristic.startNotifications();
                                 readCharacteristic.addEventListener('characteristicvaluechanged', parseTelemetryData);
-                                log(`Gefunden! Abonniert Notify-Characteristic: ${char.uuid}`, 'success');
-                                break;
+                                log(`Notify aktiv auf UUID: ${char.uuid.substring(0, 8)}`, 'success');
+                            }
+                            if (char.properties.write || char.properties.writeWithoutResponse) {
+                                writeCharacteristic = char;
+                                log(`Write-Kanal gefunden: ${char.uuid.substring(0, 8)}`, 'success');
                             }
                         }
                     } catch (e) {}
                 }
 
+                if (!readCharacteristic) {
+                    log('Achtung: Keine Notify-Characteristic gefunden.', 'error');
+                }
+
                 updateUI(true);
                 startRideTimer();
-                log('Telemetrie-Stream aktiv!', 'success');
+                
+                // 2. Start-Signal & Polling anwerfen
+                startPolling();
+
+                log('Telemetrie-Stream aktiv! Warten auf Daten...', 'success');
 
             } catch (err) {
-                log(`Fehler: ${err.message}`, 'error');
+                log(`Fehler beim Verbinden: ${err.message}`, 'error');
             }
+        }
+
+        // Sendet periodisch ein Abfrage-Paket (Ping) an den Scooter, um Daten abzurufen
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            
+            // Standard-Abfragebefehle (Ping/Poll)
+            const pollCommand = new Uint8Array([0xA5, 0x00, 0x01, 0x00]);
+
+            pollInterval = setInterval(async () => {
+                if (writeCharacteristic && bluetoothDevice && bluetoothDevice.gatt.connected) {
+                    try {
+                        await writeCharacteristic.writeValue(pollCommand);
+                    } catch (err) {
+                        // Ignorieren, wenn der Scooter ohne Response arbeitet
+                    }
+                }
+            }, 300); // Alle 300ms abfragen
+        }
+
+        function stopPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = null;
         }
 
         function onDisconnected() {
             updateUI(false);
             stopRideTimer();
+            stopPolling();
             log('Bluetooth getrennt.');
         }
 
@@ -297,7 +336,7 @@
             }
         }
 
-        // --- DASHBOARD DATA PARSER ---
+        // --- TELEMETRIE-PARSER ---
         function parseTelemetryData(event) {
             const dataView = event.target.value;
             let bytes = [];
@@ -305,15 +344,15 @@
                 bytes.push(dataView.getUint8(i));
             }
 
-            // Rohdaten im Terminal ausgeben
+            // Logge jeden empfangenen Byte-Stream
             log(`HEX Stream [${bytes.length} Bytes]: ${bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
 
-            // ACHTUNG: Die nachfolgenden Byte-Offsätze sind Platzhalter/Standard-Muster.
-            // Sobald du dein genaue Byte-Struktur kennst, passt du die Offsets an:
-            if (bytes.length >= 8) {
+            // Wenn Bytes einlaufen, ordnen wir sie hier zu:
+            if (bytes.length >= 4) {
+                // Beispielhafter Offset: Byte 2 = Geschwindigkeit
+                const rawSpeed = bytes[2] || 0;
+                const speed = rawSpeed > 0 ? rawSpeed / 1.0 : 0;
                 
-                // 1. Geschwindigkeit (Bsp: Byte 2 = km/h)
-                const speed = (bytes[2] || 0) / 1.0;
                 document.getElementById('speedDisplay').innerText = speed.toFixed(1);
                 document.getElementById('speedBar').style.width = Math.min((speed / 40) * 100, 100) + '%';
                 
@@ -322,34 +361,12 @@
                     document.getElementById('maxSpeed').innerText = maxSpeedVal.toFixed(1);
                 }
 
-                // 2. Spannung & Strom -> Leistung
-                const voltage = ((bytes[3] || 0) + 300) / 10.0; // Beispiel
-                const current = (bytes[4] || 0) / 2.0;
-                const watt = Math.round(voltage * current);
-
-                document.getElementById('powerWatt').innerText = watt;
-                document.getElementById('currentAmp').innerText = current.toFixed(1);
-                document.getElementById('voltageVolts').innerText = `${voltage.toFixed(1)} V`;
-
-                if (watt > peakWattVal) {
-                    peakWattVal = watt;
-                    document.getElementById('peakWatt').innerText = peakWattVal;
+                // Beispielhafte Dummy-Werte für Akku/Watt falls Paket kürzer ist
+                if (bytes.length >= 6) {
+                    const battery = bytes[4] || 0;
+                    document.getElementById('batteryPercent').innerText = `${battery}%`;
+                    document.getElementById('batteryBar').style.width = `${battery}%`;
                 }
-
-                // 3. Akku %
-                const battery = bytes[5] || 0;
-                document.getElementById('batteryPercent').innerText = `${battery}%`;
-                document.getElementById('batteryBar').style.width = `${battery}%`;
-                document.getElementById('estRange').innerText = `~${Math.round(battery * 0.55)} km`;
-
-                // 4. Temperatur
-                const temp = bytes[6] || 25;
-                document.getElementById('tempDisplay').innerText = temp;
-
-                // 5. Fahrmodus
-                const modeByte = bytes[7] || 0;
-                const modeNames = ["WALK", "DRIVE", "SPORT"];
-                document.getElementById('modeBadge').innerText = `MODE: ${modeNames[modeByte] || 'SPORT'}`;
             }
         }
 
